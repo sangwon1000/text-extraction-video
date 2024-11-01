@@ -1,18 +1,19 @@
-# Install required packages:
+# Installation requirements section
+# Install OpenCV for image and video processing operations
 # pip install opencv-python
+# Install PyTesseract as a Python wrapper for Google's Tesseract-OCR Engine
 # pip install pytesseract
-# You also need to install Tesseract OCR engine:
-# Windows: https://github.com/UB-Mannheim/tesseract/wiki
-# Linux: sudo apt install tesseract-ocr
-# Mac: brew install tesseract
+# Tesseract OCR engine is required as the core OCR processor:
+# Windows: Download and install from https://github.com/UB-Mannheim/tesseract/wiki
+# Linux: Install via package manager using: sudo apt install tesseract-ocr
+# Mac: Install via Homebrew using: brew install tesseract
 
 import cv2
-import pytesseract
 import os
 from pathlib import Path
 
-def extract_text_from_video():
-    # Find the most recent mp4 file in downloads folder
+def process_video():
+    # Locate the most recently downloaded MP4 file in the 'downloads' directory
     downloads_dir = Path("downloads")
     mp4_files = list(downloads_dir.glob("*.mp4"))
     
@@ -26,52 +27,41 @@ def extract_text_from_video():
     # Open the video file
     cap = cv2.VideoCapture(str(video_path))
     
-    # Get video properties
-    fps = cap.get(cv2.CAP_PROP_FPS)
-    print(f"FPS: {fps}")
-    frame_interval = int(fps / 6)
-    extracted_texts = {}
+    # Create output directory for saved images
+    output_dir = Path("saved_images")
+    output_dir.mkdir(exist_ok=True)
     
     frame_number = 0
+    last_saved_second = -1  # Initialize with an invalid second
+    fps = cap.get(cv2.CAP_PROP_FPS)
+    
     while cap.isOpened():
         ret, frame = cap.read()
-        
         if not ret:
             break
-            
-        if frame_number % frame_interval == 0:
-            # Calculate timestamp
-            timestamp = frame_number / fps
-            timestamp_str = f"{int(timestamp // 60):02d}:{int(timestamp % 60):02d}"
-            
-            # Convert frame to grayscale
-            gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-            
-            # Apply threshold to get better OCR results
-            _, threshold = cv2.threshold(gray, 127, 255, cv2.THRESH_BINARY)
-            
-            # Extract text from the frame
-            text = pytesseract.image_to_string(threshold)
-            
-            # Add non-empty lines to the dictionary with timestamps
-            for line in text.split('\n'):
-                line = line.strip()
-                if line:
-                    extracted_texts[f"[{timestamp_str}] {line}"] = timestamp
         
-        frame_number += 1
+        # Calculate timestamp in seconds
+        timestamp = frame_number / fps
+        current_second = int(timestamp)
+        timestamp_str = f"{int(timestamp // 3600):02}:{int((timestamp % 3600) // 60):02}:{int(timestamp % 60):02}"
+        
+        # Save the frame every second
+        if current_second != last_saved_second:
+            image_filename = output_dir / f"frame_{current_second}.png"
+            cv2.imwrite(str(image_filename), frame)
+            last_saved_second = current_second
+        
+        # Display the frame (optional)
+        cv2.imshow('Frame', frame)
+        if cv2.waitKey(1) & 0xFF == ord('q'):
+            break
+        
+        frame_number += 1  # Increment the frame counter
     
-    # Release video capture
+    # Cleanup: Release video resources and close display windows
     cap.release()
-    
-    # Write extracted text to file with timestamps
-    output_path = video_path.with_suffix('.ocr.txt')
-    with open(output_path, 'w', encoding='utf-8') as f:
-        # Sort by timestamp and write to file
-        for text in sorted(extracted_texts.keys(), key=lambda x: extracted_texts[x]):
-            f.write(text + '\n')
-    
-    print(f"OCR results saved to: {output_path}")
+    cv2.destroyAllWindows()
 
 if __name__ == "__main__":
-    extract_text_from_video()
+
+    process_video()
