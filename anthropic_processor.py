@@ -37,7 +37,7 @@ class AnthropicProcessor:
                 "content": [
                     {
                         "type": "text",
-                        "text": "Please extract all text from this image. Output only the extracted text, nothing else."
+                        "text": "Please extract all text from this image. Output only the extracted text, nothing else. If there is no text in the image, output '-'"
                     },
                     {
                         "type": "image",
