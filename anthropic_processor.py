@@ -31,7 +31,7 @@ class AnthropicProcessor:
         # Create message with the image
         message = self.client.messages.create(
             model="claude-3-haiku-20240307",
-            max_tokens=1000,
+            max_tokens=1200,
             messages=[{
                 "role": "user",
                 "content": [
@@ -69,23 +69,14 @@ class AnthropicProcessor:
         return text
 
     def process_text(self, text, system_prompt=None):
-        messages = []
-        
-        if system_prompt:
-            messages.append({
-                "role": "system",
-                "content": system_prompt
-            })
-            
-        messages.append({
-            "role": "user",
-            "content": text
-        })
-        
         response = self.client.messages.create(
             model="claude-3-haiku-20240307",
             max_tokens=1000,
-            messages=messages
+            system=system_prompt,
+            messages=[{
+                "role": "user",
+                "content": text
+            }]
         )
         
         return response.content[0].text
